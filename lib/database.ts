@@ -54,19 +54,24 @@ export function menuImage(name: string) {
 }
 
 export async function db() {
-  if (!readyPromise) readyPromise = open();
+  if (!readyPromise) readyPromise = open(false);
   await readyPromise;
   return { pool, transaction: null };
+}
+
+export async function bootstrapDatabase() {
+  await open(true);
 }
 
 export function resetDbConnection() {
   readyPromise = null;
 }
 
-async function open() {
+async function open(bootstrap: boolean) {
   if (!process.env.DATABASE_URL) {
     throw new Error("DATABASE_URL belum diatur. Isi dengan URL PostgreSQL online, contoh: postgresql://user:password@host:5432/db?sslmode=require");
   }
+  if (!bootstrap) return;
   const database = { pool, transaction: null };
   await migrate(database);
   await seed(database);

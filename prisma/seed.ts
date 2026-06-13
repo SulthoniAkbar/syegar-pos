@@ -5,10 +5,10 @@ const { loadEnvConfig } = nextEnv;
 loadEnvConfig(process.cwd());
 
 async function main() {
-  const { db } = await import("../lib/database");
+  const { bootstrapDatabase } = await import("../lib/database");
   const { pool } = await import("../lib/db");
   try {
-    await db();
+    await bootstrapDatabase();
     console.log("Database PostgreSQL siap dan seed awal sudah dipastikan.");
   } finally {
     await pool.end();

@@ -14,13 +14,13 @@ import { SecondaryButton } from "@/components/ui";
 import { useAuthStore } from "@/stores/auth.store";
 
 import type { User } from "@/types/app-ui";
+import { DashboardView } from "@/components/features/dashboard/DashboardView";
 
 const viewLoading = () => (
   <div className="flex min-h-[60vh] items-center justify-center text-sm font-medium text-ink/60">
     Memuat halaman...
   </div>
 );
-const DashboardView = dynamic(() => import("@/components/features/dashboard/DashboardView").then((mod) => mod.DashboardView), { loading: viewLoading });
 const CashierView = dynamic(() => import("@/components/features/kasir/CashierView").then((mod) => mod.CashierView), { loading: viewLoading });
 const MenusView = dynamic(() => import("@/components/features/menu/MenusView").then((mod) => mod.MenusView), { loading: viewLoading });
 const CategoriesView = dynamic(() => import("@/components/features/kategori/CategoriesView").then((mod) => mod.CategoriesView), { loading: viewLoading });
@@ -35,7 +35,7 @@ const ReportsView = dynamic(() => import("@/components/features/laporan/ReportsV
 const AdminFinanceView = dynamic(() => import("@/components/features/admin-keuangan/AdminFinanceView").then((mod) => mod.AdminFinanceView), { loading: viewLoading });
 const UsersView = dynamic(() => import("@/components/features/users/UsersView").then((mod) => mod.UsersView), { loading: viewLoading });
 
-export default function SyegarApp({ view }: { view: View }) {
+export default function SyegarApp({ view, initialUser }: { view: View; initialUser?: User }) {
   const router = useRouter();
   const pathname = usePathname();
   const user = useAuthStore((state) => state.user);
@@ -43,8 +43,15 @@ export default function SyegarApp({ view }: { view: View }) {
   const setUser = useAuthStore((state) => state.setUser);
   const setLoading = useAuthStore((state) => state.setLoading);
   const resetAuth = useAuthStore((state) => state.reset);
+  const activeUser = user ?? initialUser ?? null;
+  const isLoading = initialUser ? false : loading;
 
   useEffect(() => {
+    if (initialUser) {
+      setUser(initialUser);
+      setLoading(false);
+      return;
+    }
     if (user) {
       setLoading(false);
       return;
@@ -59,7 +66,7 @@ export default function SyegarApp({ view }: { view: View }) {
         router.replace("/login");
       })
       .finally(() => setLoading(false));
-  }, [router, setLoading, setUser, user]);
+  }, [initialUser, router, setLoading, setUser, user]);
 
   async function logout() {
     await api("/api/auth/logout", { method: "POST" });
@@ -67,12 +74,12 @@ export default function SyegarApp({ view }: { view: View }) {
     router.push("/login");
   }
 
-  if (loading) return <LoadingScreen />;
-  if (!user) return <LoadingScreen label="Mengalihkan ke halaman login..." />;
+  if (isLoading) return <LoadingScreen />;
+  if (!activeUser) return <LoadingScreen label="Mengalihkan ke halaman login..." />;
 
-  const isKasir = user.role === "KASIR";
+  const isKasir = activeUser.role === "KASIR";
   const visibleNavGroups = (isKasir ? cashierNavGroups : ownerNavGroups)
-    .map((group) => ({ ...group, items: group.items.filter(([id]) => id !== "users" || user.role === "SUPER_ADMIN") }))
+    .map((group) => ({ ...group, items: group.items.filter(([id]) => id !== "users" || activeUser.role === "SUPER_ADMIN") }))
     .filter((group) => group.items.length);
 
   return (
@@ -80,7 +87,7 @@ export default function SyegarApp({ view }: { view: View }) {
       <aside className="border-b border-black/10 bg-white/80 p-4 backdrop-blur lg:min-h-screen lg:border-b-0 lg:border-r">
         <div className="mb-5">
           <div className="text-2xl font-black text-leaf">SYEGAR POS</div>
-          <div className="text-xs font-medium text-ink/55">{user.name} - {user.role}</div>
+          <div className="text-xs font-medium text-ink/55">{activeUser.name} - {activeUser.role}</div>
         </div>
         <nav className="grid gap-4">
           {visibleNavGroups.map((group) => (
@@ -101,19 +108,19 @@ export default function SyegarApp({ view }: { view: View }) {
       <main className="p-4 lg:p-6">
         <NotificationCenter />
         {view === "dashboard" && <DashboardView />}
-        {view === "kasir" && <CashierView user={user} />}
+        {view === "kasir" && <CashierView user={activeUser} />}
         {view === "menu" && <MenusView />}
         {view === "kategori" && <CategoriesView />}
         {view === "varian-topping" && <OptionsView />}
         {view === "bahan-baku" && <IngredientsView />}
-        {view === "stok-masuk" && <StockPurchasesView user={user} />}
+        {view === "stok-masuk" && <StockPurchasesView user={activeUser} />}
         {view === "resep-menu" && <RecipesView />}
         {view === "stok" && <StockView />}
-        {view === "stock-opname" && <StockOpnameView user={user} />}
-        {view === "tutup-shift" && <ShiftView user={user} />}
+        {view === "stock-opname" && <StockOpnameView user={activeUser} />}
+        {view === "tutup-shift" && <ShiftView user={activeUser} />}
         {view === "laporan" && <ReportsView />}
         {view === "admin-keuangan" && <AdminFinanceView />}
-        {view === "users" && <UsersView currentUser={user} />}
+        {view === "users" && <UsersView currentUser={activeUser} />}
       </main>
     </div>
   );

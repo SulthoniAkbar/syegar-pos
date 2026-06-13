@@ -4,11 +4,16 @@ import { useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/components/api";
 
-export function useData<T>(url: string, seed: T) {
+type UseDataOptions = {
+  staleTime?: number;
+};
+
+export function useData<T>(url: string, seed: T, options: UseDataOptions = {}) {
   const query = useQuery({
     queryKey: [url],
     queryFn: () => api<T>(url),
-    initialData: seed
+    initialData: seed,
+    staleTime: options.staleTime
   });
   const reload = useCallback(() => {
     query.refetch();

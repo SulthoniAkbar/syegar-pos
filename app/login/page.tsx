@@ -1,25 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { LogIn } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { api } from "@/components/api";
 import { Button, Card, Field, Input } from "@/components/ui";
 import { useAuthStore } from "@/stores/auth.store";
 import type { User } from "@/types/app-ui";
 
 export default function LoginPage() {
-  const router = useRouter();
   const setUser = useAuthStore((state) => state.setUser);
   const setLoading = useAuthStore((state) => state.setLoading);
   const [username, setUsername] = useState("owner");
   const [password, setPassword] = useState("owner123");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    router.prefetch("/dashboard");
-  }, [router]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -30,7 +24,7 @@ export default function LoginPage() {
       const user = await api<User>("/api/auth/login", { method: "POST", body: JSON.stringify({ username, password }) });
       setUser(user);
       setLoading(false);
-      router.replace("/dashboard");
+      window.location.replace("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login gagal");
       setSubmitting(false);

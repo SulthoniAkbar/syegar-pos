@@ -12,11 +12,10 @@ export function DashboardView() {
   const [chartMode, setChartMode] = useState("monthly");
   const [year, setYear] = useState(String(new Date().getFullYear()));
   const query = new URLSearchParams({ chart: chartMode, year });
-  const { data, error } = useData<any>(`/api/dashboard?${query.toString()}`, null);
-  const { data: menus } = useData<Menu[]>("/api/menus", []);
+  const { data, error } = useData<any>(`/api/dashboard?${query.toString()}`, null, { staleTime: 60_000 });
   if (!data) return <Title title="Dashboard" subtitle={error || "Memuat ringkasan hari ini..."} />;
   const availableYears = data.filters?.availableYears?.length ? data.filters.availableYears : [Number(year)];
-  const menusWithoutRecipes = menus.filter((menu) => menu.active && !menu.recipes?.length);
+  const menusWithoutRecipes = (data.menusWithoutRecipes ?? []) as Menu[];
   return (
     <>
       <Title title="Dashboard" subtitle="Ringkasan omzet, grafik penjualan, transaksi, stok, dan pembayaran." />

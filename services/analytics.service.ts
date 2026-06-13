@@ -15,17 +15,18 @@ export async function getDashboard(filters: DashboardFilters = {}) {
   const chartRange = buildChartRange(filters.chartMode ?? "monthly", selectedYear);
   const data = await analyticsRepository.getDashboardBase(todayRange.from, todayRange.to, yearRange.from, yearRange.to, chartRange.from, chartRange.to);
   return {
-    omzetToday: data.omzetToday,
-    transactionCount: data.transactionCount,
+    omzetToday: Number(data.todaySummary.omzet ?? 0),
+    transactionCount: Number(data.todaySummary.count ?? 0),
     lowStock: data.lowStock,
+    menusWithoutRecipes: data.menusWithoutRecipes.map((menu: any) => ({ id: menu.id, name: menu.name, category: { name: menu.categoryName } })),
     notifications: data.notifications,
     topItems: data.topItems.map((item) => ({ menuName: item.menuName, _sum: { quantity: item.qty, lineTotal: item.total } })),
-    payment: { cash: data.cashPayment, qris: data.qrisPayment },
+    payment: { cash: Number(data.todaySummary.cash ?? 0), qris: Number(data.todaySummary.qris ?? 0) },
     filters: {
       year: selectedYear,
       availableYears: ensureYear(data.availableYears.map(Number), selectedYear)
     },
-    salesChart: buildSalesChart(data.paidTransactions, filters.chartMode ?? "monthly", selectedYear)
+    salesChart: buildSalesChart(data.chartRows, filters.chartMode ?? "monthly", selectedYear)
   };
 }
 
@@ -34,7 +35,7 @@ export async function getReports(from: string, to: string) {
   return { ...(await analyticsRepository.listReportTransactions(params)), range: { from, to } };
 }
 
-function buildSalesChart(paid: any[], mode: string, year: number) {
+function buildSalesChart(rows: any[], mode: string, year: number) {
   const monthNames = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
 
   if (mode === "yearly") {
@@ -42,7 +43,7 @@ function buildSalesChart(paid: any[], mode: string, year: number) {
     return {
       mode,
       title: "Omzet Tahunan",
-      rows: years.map((itemYear) => summarizeBucket(String(itemYear), paid.filter((trx) => trx.paidAt.slice(0, 4) === String(itemYear))))
+      rows: years.map((itemYear) => summarizeBucket(String(itemYear), rows.filter((row) => row.year === String(itemYear))))
     };
   }
 
@@ -51,12 +52,7 @@ function buildSalesChart(paid: any[], mode: string, year: number) {
       mode,
       title: `Omzet Per Kuartal ${year}`,
       rows: [1, 2, 3, 4].map((quarter) => {
-        const txs = paid.filter((trx) => {
-          const trxYear = Number(trx.paidAt.slice(0, 4));
-          const month = Number(trx.paidAt.slice(5, 7));
-          return trxYear === year && Math.ceil(month / 3) === quarter;
-        });
-        return summarizeBucket(`Q${quarter}`, txs);
+        return summarizeBucket(`Q${quarter}`, rows.filter((row) => row.year === String(year) && Number(row.quarter) === quarter));
       })
     };
   }
@@ -66,7 +62,7 @@ function buildSalesChart(paid: any[], mode: string, year: number) {
     title: `Omzet Bulanan ${year}`,
     rows: monthNames.map((label, index) => {
       const month = String(index + 1).padStart(2, "0");
-      return summarizeBucket(label, paid.filter((trx) => trx.paidAt.startsWith(`${year}-${month}`)));
+      return summarizeBucket(label, rows.filter((row) => row.month === `${year}-${month}`));
     })
   };
 }
@@ -98,12 +94,12 @@ function ensureYear(years: number[], selectedYear: number) {
   return Array.from(new Set([...years, selectedYear, currentYear()])).sort((a, b) => b - a);
 }
 
-function summarizeBucket(label: string, txs: any[]) {
+function summarizeBucket(label: string, rows: any[]) {
   return {
     label,
-    omzet: txs.reduce((sum, trx) => sum + Number(trx.total || 0), 0),
-    transactions: txs.length,
-    cash: txs.filter((trx) => trx.paymentMethod === "TUNAI").reduce((sum, trx) => sum + Number(trx.total || 0), 0),
-    qris: txs.filter((trx) => trx.paymentMethod === "QRIS").reduce((sum, trx) => sum + Number(trx.total || 0), 0)
+    omzet: rows.reduce((sum, row) => sum + Number(row.omzet || 0), 0),
+    transactions: rows.reduce((sum, row) => sum + Number(row.transactions || 0), 0),
+    cash: rows.reduce((sum, row) => sum + Number(row.cash || 0), 0),
+    qris: rows.reduce((sum, row) => sum + Number(row.qris || 0), 0)
   };
 }
