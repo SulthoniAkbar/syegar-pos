@@ -1,0 +1,312 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  username     String   @unique
+  passwordHash String
+  role         String   @default("KASIR")
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  transactions Transaction[]
+  shifts       Shift[]
+}
+
+model Category {
+  id        String           @id @default(cuid())
+  name      String           @unique
+  type      String
+  active    Boolean          @default(true)
+  createdAt DateTime         @default(now())
+
+  menus Menu[]
+}
+
+model Menu {
+  id         String   @id @default(cuid())
+  name       String
+  price      Int
+  active     Boolean  @default(true)
+  photoUrl   String?
+  categoryId String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  category         Category          @relation(fields: [categoryId], references: [id])
+  recipes          RecipeItem[]
+  transactionItems TransactionItem[]
+
+  @@index([categoryId])
+}
+
+model OptionGroup {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  type      String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  options MenuOption[]
+}
+
+model MenuOption {
+  id            String   @id @default(cuid())
+  name          String
+  extraPrice    Int      @default(0)
+  active        Boolean  @default(true)
+  optionGroupId String
+  createdAt     DateTime @default(now())
+
+  group       OptionGroup             @relation(fields: [optionGroupId], references: [id])
+  itemOptions TransactionItemOption[]
+
+  @@index([optionGroupId])
+}
+
+model Ingredient {
+  id           String   @id @default(cuid())
+  name         String   @unique
+  unit         String
+  currentStock Float    @default(0)
+  minimumStock Float    @default(0)
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  recipeItems RecipeItem[]
+  stockMoves  StockMovement[]
+  stockOpnameItems StockOpnameItem[]
+  stockAdjustments StockAdjustment[]
+  stockPurchases StockPurchase[]
+}
+
+model RecipeItem {
+  id           String @id @default(cuid())
+  menuId       String
+  ingredientId String
+  quantity     Float
+
+  menu       Menu       @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  ingredient Ingredient @relation(fields: [ingredientId], references: [id])
+
+  @@unique([menuId, ingredientId])
+  @@index([ingredientId])
+}
+
+model Transaction {
+  id             String            @id @default(cuid())
+  receiptNumber  String            @unique
+  cashierId      String
+  shiftId        String?
+  paymentMethod  String
+  status         String   @default("PAID")
+  subtotal       Int
+  total          Int
+  cashReceived   Int?
+  changeAmount   Int?
+  paidAt         DateTime          @default(now())
+  createdAt      DateTime          @default(now())
+
+  cashier User              @relation(fields: [cashierId], references: [id])
+  shift   Shift?            @relation(fields: [shiftId], references: [id])
+  items   TransactionItem[]
+
+  @@index([paidAt])
+  @@index([cashierId])
+  @@index([shiftId])
+}
+
+model TransactionItem {
+  id            String @id @default(cuid())
+  transactionId String
+  menuId        String
+  menuName      String
+  unitPrice     Int
+  quantity      Int
+  lineTotal     Int
+
+  transaction Transaction             @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  menu        Menu                    @relation(fields: [menuId], references: [id])
+  options     TransactionItemOption[]
+
+  @@index([transactionId])
+  @@index([menuId])
+}
+
+model TransactionItemOption {
+  id                String @id @default(cuid())
+  transactionItemId String
+  optionId          String?
+  optionName        String
+  extraPrice        Int
+
+  transactionItem TransactionItem @relation(fields: [transactionItemId], references: [id], onDelete: Cascade)
+  option          MenuOption?     @relation(fields: [optionId], references: [id])
+}
+
+model StockMovement {
+  id            String   @id @default(cuid())
+  ingredientId  String
+  type          String
+  quantity      Float
+  note          String?
+  transactionId String?
+  createdAt     DateTime @default(now())
+
+  ingredient Ingredient @relation(fields: [ingredientId], references: [id])
+
+  @@index([ingredientId])
+  @@index([createdAt])
+}
+
+model Shift {
+  id                String    @id @default(cuid())
+  cashierId         String
+  openedAt          DateTime  @default(now())
+  closedAt          DateTime?
+  openingCash       Int       @default(0)
+  closingCashActual Int?
+  expectedCash      Int?
+  cashDifference    Int?
+  totalSales        Int       @default(0)
+  totalTransactions Int       @default(0)
+  totalItemsSold    Int       @default(0)
+  totalCashPayment  Int       @default(0)
+  totalQrisPayment  Int       @default(0)
+  totalDiscount     Int       @default(0)
+  totalVoided       Int       @default(0)
+  notes             String?
+  status            String    @default("ACTIVE")
+  backupPath        String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  cashier             User                       @relation(fields: [cashierId], references: [id])
+  transactions        Transaction[]
+  itemsSummary        ShiftItemSummary[]
+  ingredientsSummary  ShiftIngredientSummary[]
+}
+
+model ShiftItemSummary {
+  id           String @id @default(cuid())
+  shiftId      String
+  menuId       String?
+  menuName     String
+  quantitySold Int
+  totalSales   Int
+
+  shift Shift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+}
+
+model ShiftIngredientSummary {
+  id             String @id @default(cuid())
+  shiftId         String
+  ingredientId    String?
+  ingredientName  String
+  quantityUsed    Float
+  unit            String
+  remainingStock  Float
+
+  shift Shift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+}
+
+model BackupLog {
+  id        String   @id @default(cuid())
+  path      String
+  status    String
+  message   String?
+  createdAt DateTime @default(now())
+}
+
+model StockOpname {
+  id                   String   @id @default(cuid())
+  soNumber             String   @unique
+  periodMonth          Int
+  periodYear           Int
+  opnameDate           DateTime
+  officerId            String?
+  officerName          String
+  generalNotes         String?
+  totalItems           Int      @default(0)
+  totalMinusDifference Float    @default(0)
+  totalPlusDifference  Float    @default(0)
+  status               String   @default("DRAFT")
+  finalizedAt          DateTime?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  items       StockOpnameItem[]
+  adjustments StockAdjustment[]
+}
+
+model StockOpnameItem {
+  id             String   @id @default(cuid())
+  stockOpnameId  String
+  ingredientId   String
+  ingredientName String
+  unit           String
+  systemStock    Float
+  physicalStock  Float?
+  difference     Float?
+  differenceType String   @default("BELUM")
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  stockOpname StockOpname @relation(fields: [stockOpnameId], references: [id], onDelete: Cascade)
+  ingredient  Ingredient   @relation(fields: [ingredientId], references: [id])
+}
+
+model StockAdjustment {
+  id              String   @id @default(cuid())
+  ingredientId    String
+  stockOpnameId   String?
+  adjustmentType  String
+  stockBefore     Float
+  stockAfter      Float
+  difference      Float
+  reason          String?
+  createdBy       String?
+  createdAt       DateTime @default(now())
+
+  ingredient  Ingredient    @relation(fields: [ingredientId], references: [id])
+  stockOpname StockOpname?  @relation(fields: [stockOpnameId], references: [id])
+}
+
+model StockPurchase {
+  id             String   @id @default(cuid())
+  ingredientId   String
+  ingredientName String
+  unit           String
+  quantity       Float
+  stockBefore    Float
+  stockAfter     Float
+  purchaseAmount Int      @default(0)
+  paymentMethod  String   @default("TUNAI")
+  supplier       String?
+  note           String?
+  createdBy      String?
+  createdAt      DateTime @default(now())
+
+  ingredient Ingredient @relation(fields: [ingredientId], references: [id])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  userName  String?
+  action    String
+  entity    String
+  entityId  String?
+  details   String?
+  createdAt DateTime @default(now())
+}
