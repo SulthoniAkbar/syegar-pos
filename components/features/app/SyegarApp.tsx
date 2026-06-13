@@ -35,7 +35,7 @@ const ReportsView = dynamic(() => import("@/components/features/laporan/ReportsV
 const AdminFinanceView = dynamic(() => import("@/components/features/admin-keuangan/AdminFinanceView").then((mod) => mod.AdminFinanceView), { loading: viewLoading });
 const UsersView = dynamic(() => import("@/components/features/users/UsersView").then((mod) => mod.UsersView), { loading: viewLoading });
 
-export default function SyegarApp({ view, initialUser }: { view: View; initialUser?: User }) {
+export default function SyegarApp({ view, initialUser, initialDashboardData }: { view: View; initialUser?: User; initialDashboardData?: any }) {
   const router = useRouter();
   const pathname = usePathname();
   const user = useAuthStore((state) => state.user);
@@ -106,8 +106,8 @@ export default function SyegarApp({ view, initialUser }: { view: View; initialUs
         </SecondaryButton>
       </aside>
       <main className="p-4 lg:p-6">
-        <NotificationCenter />
-        {view === "dashboard" && <DashboardView />}
+        <NotificationCenter initialNotifications={initialDashboardData?.notifications} />
+        {view === "dashboard" && <DashboardView initialData={initialDashboardData} />}
         {view === "kasir" && <CashierView user={activeUser} />}
         {view === "menu" && <MenusView />}
         {view === "kategori" && <CategoriesView />}

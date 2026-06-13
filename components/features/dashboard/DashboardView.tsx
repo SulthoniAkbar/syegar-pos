@@ -8,11 +8,12 @@ import { HelpNote, Metric, Rows, SalesBarChart, Title } from "@/components/commo
 import { numberId, rupiah } from "@/utils/format";
 import type { Ingredient, Menu } from "@/types/app-ui";
 
-export function DashboardView() {
+export function DashboardView({ initialData = null }: { initialData?: any }) {
   const [chartMode, setChartMode] = useState("monthly");
   const [year, setYear] = useState(String(new Date().getFullYear()));
   const query = new URLSearchParams({ chart: chartMode, year });
-  const { data, error } = useData<any>(`/api/dashboard?${query.toString()}`, null, { staleTime: 60_000 });
+  const seed = chartMode === "monthly" && year === String(new Date().getFullYear()) ? initialData : null;
+  const { data, error } = useData<any>(`/api/dashboard?${query.toString()}`, seed, { staleTime: 60_000 });
   if (!data) return <Title title="Dashboard" subtitle={error || "Memuat ringkasan hari ini..."} />;
   const availableYears = data.filters?.availableYears?.length ? data.filters.availableYears : [Number(year)];
   const menusWithoutRecipes = (data.menusWithoutRecipes ?? []) as Menu[];

@@ -6,13 +6,14 @@ import { Bell, X } from "lucide-react";
 import { api } from "@/components/api";
 import { numberId } from "@/utils/format";
 
-export function NotificationCenter() {
-  const [data, setData] = useState<any>(null);
+export function NotificationCenter({ initialNotifications = null }: { initialNotifications?: any }) {
+  const [data, setData] = useState<any>(initialNotifications ? { notifications: initialNotifications } : null);
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
+    if (initialNotifications) return;
     api<any>("/api/dashboard?chart=monthly").then(setData).catch(() => setData(null));
-  }, []);
+  }, [initialNotifications]);
 
   const notifications = data?.notifications;
   const lowStock = notifications?.lowStock ?? [];
