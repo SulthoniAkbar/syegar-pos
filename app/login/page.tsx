@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { LogIn } from "lucide-react";
+import { Eye, EyeOff, LogIn } from "lucide-react";
 import { api } from "@/components/api";
 import { Button, Card, Field, Input } from "@/components/ui";
 import { useAuthStore } from "@/stores/auth.store";
@@ -10,8 +10,9 @@ import type { User } from "@/types/app-ui";
 export default function LoginPage() {
   const setUser = useAuthStore((state) => state.setUser);
   const setLoading = useAuthStore((state) => state.setLoading);
-  const [username, setUsername] = useState("owner");
-  const [password, setPassword] = useState("owner123");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -43,14 +44,29 @@ export default function LoginPage() {
             <Input value={username} onChange={(e) => setUsername(e.target.value)} autoFocus />
           </Field>
           <Field label="Password">
-            <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+            <div className="relative">
+              <Input
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="pr-11"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((value) => !value)}
+                className="absolute right-1 top-1 inline-flex size-8 items-center justify-center rounded-md text-ink/55 hover:bg-skysoft hover:text-ink"
+                aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"}
+                title={showPassword ? "Sembunyikan password" : "Tampilkan password"}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
           </Field>
           {error && <div className="rounded-md bg-guava/10 px-3 py-2 text-sm font-medium text-guava">{error}</div>}
           <Button type="submit" className="w-full" disabled={submitting}>
             {submitting ? <span className="size-4 animate-spin rounded-full border-2 border-white/35 border-t-white" /> : <LogIn size={18} />}
             {submitting ? "Memproses..." : "Masuk"}
           </Button>
-          <div className="rounded-md bg-skysoft px-3 py-2 text-xs text-ink/70">Akun awal: superadmin/superadmin123, owner/owner123, atau kasir/kasir123</div>
         </form>
       </Card>
     </main>
