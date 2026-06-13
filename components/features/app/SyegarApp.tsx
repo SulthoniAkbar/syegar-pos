@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { LogOut } from "lucide-react";
@@ -13,20 +14,26 @@ import { SecondaryButton } from "@/components/ui";
 import { useAuthStore } from "@/stores/auth.store";
 
 import type { User } from "@/types/app-ui";
-import { DashboardView } from "@/components/features/dashboard/DashboardView";
-import { CashierView } from "@/components/features/kasir/CashierView";
-import { MenusView } from "@/components/features/menu/MenusView";
-import { CategoriesView } from "@/components/features/kategori/CategoriesView";
-import { OptionsView } from "@/components/features/varian-topping/OptionsView";
-import { IngredientsView } from "@/components/features/bahan-baku/IngredientsView";
-import { StockPurchasesView } from "@/components/features/stok-masuk/StockPurchasesView";
-import { RecipesView } from "@/components/features/resep-menu/RecipesView";
-import { StockView } from "@/components/features/stok/StockView";
-import { StockOpnameView } from "@/components/features/stock-opname/StockOpnameView";
-import { ShiftView } from "@/components/features/tutup-shift/ShiftView";
-import { ReportsView } from "@/components/features/laporan/ReportsView";
-import { AdminFinanceView } from "@/components/features/admin-keuangan/AdminFinanceView";
-import { UsersView } from "@/components/features/users/UsersView";
+
+const viewLoading = () => (
+  <div className="flex min-h-[60vh] items-center justify-center text-sm font-medium text-ink/60">
+    Memuat halaman...
+  </div>
+);
+const DashboardView = dynamic(() => import("@/components/features/dashboard/DashboardView").then((mod) => mod.DashboardView), { loading: viewLoading });
+const CashierView = dynamic(() => import("@/components/features/kasir/CashierView").then((mod) => mod.CashierView), { loading: viewLoading });
+const MenusView = dynamic(() => import("@/components/features/menu/MenusView").then((mod) => mod.MenusView), { loading: viewLoading });
+const CategoriesView = dynamic(() => import("@/components/features/kategori/CategoriesView").then((mod) => mod.CategoriesView), { loading: viewLoading });
+const OptionsView = dynamic(() => import("@/components/features/varian-topping/OptionsView").then((mod) => mod.OptionsView), { loading: viewLoading });
+const IngredientsView = dynamic(() => import("@/components/features/bahan-baku/IngredientsView").then((mod) => mod.IngredientsView), { loading: viewLoading });
+const StockPurchasesView = dynamic(() => import("@/components/features/stok-masuk/StockPurchasesView").then((mod) => mod.StockPurchasesView), { loading: viewLoading });
+const RecipesView = dynamic(() => import("@/components/features/resep-menu/RecipesView").then((mod) => mod.RecipesView), { loading: viewLoading });
+const StockView = dynamic(() => import("@/components/features/stok/StockView").then((mod) => mod.StockView), { loading: viewLoading });
+const StockOpnameView = dynamic(() => import("@/components/features/stock-opname/StockOpnameView").then((mod) => mod.StockOpnameView), { loading: viewLoading });
+const ShiftView = dynamic(() => import("@/components/features/tutup-shift/ShiftView").then((mod) => mod.ShiftView), { loading: viewLoading });
+const ReportsView = dynamic(() => import("@/components/features/laporan/ReportsView").then((mod) => mod.ReportsView), { loading: viewLoading });
+const AdminFinanceView = dynamic(() => import("@/components/features/admin-keuangan/AdminFinanceView").then((mod) => mod.AdminFinanceView), { loading: viewLoading });
+const UsersView = dynamic(() => import("@/components/features/users/UsersView").then((mod) => mod.UsersView), { loading: viewLoading });
 
 export default function SyegarApp({ view }: { view: View }) {
   const router = useRouter();
@@ -38,6 +45,10 @@ export default function SyegarApp({ view }: { view: View }) {
   const resetAuth = useAuthStore((state) => state.reset);
 
   useEffect(() => {
+    if (user) {
+      setLoading(false);
+      return;
+    }
     api<User | null>("/api/auth/me")
       .then((me) => {
         if (!me) router.replace("/login");
@@ -48,7 +59,7 @@ export default function SyegarApp({ view }: { view: View }) {
         router.replace("/login");
       })
       .finally(() => setLoading(false));
-  }, [router, setLoading, setUser]);
+  }, [router, setLoading, setUser, user]);
 
   async function logout() {
     await api("/api/auth/logout", { method: "POST" });

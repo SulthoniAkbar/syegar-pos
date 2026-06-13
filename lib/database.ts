@@ -162,8 +162,11 @@ async function addForeignKeys(database: Database) {
     ["audit_logs", "fk_audit_logs_user", "FOREIGN KEY (userId) REFERENCES users(id) ON DELETE SET NULL"],
     ["debt_payments", "fk_debt_payments_debt", "FOREIGN KEY (debtId) REFERENCES debts(id) ON DELETE CASCADE"]
   ] as const;
+  const existingRows = await rows<{ conname: string }>(database, "SELECT conname FROM pg_constraint WHERE contype = 'f' AND connamespace = 'public'::regnamespace");
+  const existing = new Set(existingRows.map((row) => row.conname));
 
   for (const [table, name, definition] of constraints) {
+    if (existing.has(name)) continue;
     try {
       await exec(database, `ALTER TABLE ${table} ADD CONSTRAINT ${name} ${definition} NOT VALID`);
     } catch (error) {
